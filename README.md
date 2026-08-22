@@ -1,0 +1,240 @@
+# SOLID Principles: Martin's Classic Examples, Converted to Java
+
+Java translations of the code from all five of Robert C. Martin's original
+SOLID essays: **S**ingle Responsibility, **O**pen-Closed, **L**iskov
+Substitution, **I**nterface Segregation, and **D**ependency Inversion. Every
+package is working, compilable, runnable Java, organized so you can read the
+diff between "violates the principle" and "conforms to it," then break
+things yourself. A final `solid` package ties all five together in one small
+system.
+
+**A bit of history worth knowing:** four of these -- OCP, LSP, DIP, ISP --
+were originally Martin's "Engineering Notebook" columns for *C++ Report* in
+1996, published in that order and each explicitly referencing the one
+before it. SRP is not from that series at all -- it's a later book chapter
+(*Agile Software Development: Principles, Patterns, and Practices*),
+building on a "cohesion" concept from DeMarco and Page-Jones' earlier
+structured-design work. The tidy "SOLID" acronym and S-O-L-I-D ordering
+came afterward (commonly credited to Michael Feathers), grouping five
+principles from two different sources and a decade apart under one mnemonic.
+That's part of why SRP feels a little different in flavor from the other
+four -- it's genuinely from a different lineage.
+
+## How to build and run
+
+```bash
+javac -d out $(find src -name "*.java")
+java -cp out App
+```
+
+Requires JDK 16+ (uses pattern-matching `instanceof`). Tested on JDK 21.
+
+Every `Demo.java` in the project also has its own `main()`, so you can run
+any single section standalone instead of the whole 26-part walkthrough:
+
+```bash
+java -cp out solid.Demo
+java -cp out dip.buttonlamp.conforming.Demo
+java -cp out isp.door.violating.Demo
+```
+
+## Map back to the articles
+
+| Package | Source | Point being made |
+|---|---|---|
+| `srp.rectangle.violating` / `.conforming` | SRP, Figures 9-1 / 9-2 | `Rectangle.draw()+area()` bundles two reasons to change; split into `GeometricRectangle` (math) and `RectangleRenderer` (drawing). |
+| `srp.modem.violating` / `.conforming` | SRP, Listing 9-1 / Figure 9-3 | The fat `Modem` interface bundles connection management with data transfer; split into `Connection` + `DataChannel`, recombined only in the "wart" `ModemImplementation`. |
+| `ocp.procedural` | OCP Listing 1 | C-style switch-on-type-tag. Bad in C, still bad (and still common) in Java. |
+| `ocp.conforming` | OCP Listing 2 | Abstract `Shape` + polymorphic `draw()`. Adding `Triangle` costs one new file, zero edits elsewhere. |
+| `ocp.ordering.violating` | OCP Listings 3-5 | `Circle.precedes()` hard-codes knowledge of `Square`. A new shape means editing *every* existing shape. |
+| `ocp.ordering.conforming` | OCP Listing 6 | Ordering policy lives in one isolated `ShapeOrderTable`. Adding `Triangle` costs one file + one line. |
+| `ocp.encapsulation` | OCP Listings 7-8 | `Device.status` public = risky. `Time`'s public fields = mostly harmless, because clients are *meant* to write them. |
+| `ocp.rtti.violating` / `.conforming` | OCP Listings 9-10 | `instanceof` asking "what are you?" for *every* subtype violates OCP; asking "are you specifically a Square?" does not. |
+| `lsp.rtti` | LSP's `DrawShape` example | typeid-based dispatch, reusing OCP's own `Triangle` to show a *known-good* OCP extension defeated by an LSP-violating dispatcher. |
+| `lsp.rectangle.violating` / `.conforming` | The Rectangle/Square example | `Square` overrides `setWidth`/`setHeight` to preserve its own invariant, silently breaking a client written under OCP's promise; fixed by making `Square`/`Rectangle` siblings under `Quadrilateral`. |
+| `lsp.container.violating` / `.conforming` | The Set/PersistentSet case study | `PersistentSet` implements `Set<T>` but narrows it via an unchecked cast; fixed by making it a sibling `Container`, enforced at compile time instead of runtime. |
+| `synthesis` | New -- ties OCP and LSP together | Runs the causal chain end to end: OCP-compliant code, defeated by an LSP violation, restored once LSP holds again. |
+| `isp.door.violating` / `.conforming` | The Door/TimedDoor example | `Door` polluted with `TimerClient` forces every derivative (even a `PlainDoor`) to implement timing it doesn't need; fixed by keeping the interfaces separate and multiply-implementing them in `TimedDoor`. |
+| `isp.atm.violating` / `.conforming` | The ATM UI example | One fat `UI` interface forces every `Transaction` to depend on prompts it never uses; fixed with segregated `DepositUI`/`WithdrawUI`, including Martin's "polyad vs. monad" argument. |
+| `dip.copy.violating` / `.conforming` | The Copy program (Listings 1-4) | `Copy` hard-wired to concrete `KeyboardReader`/`PrinterWriter` (and an if/else "fix" that still violates DIP); fixed by depending on abstract `Reader`/`Writer`. |
+| `dip.buttonlamp.violating` / `.conforming` | The Button/Lamp example | `Button` directly coupled to concrete `Lamp`; fixed via the abstract `ButtonClient`, with `Motor` proving reuse and `LampAdapter` handling a third-party class you can't modify. |
+| `solid` | New -- all five principles together | A small role-based access-control system where every design decision is traceable to one specific SOLID principle. |
+
+Each package has its own `Demo.java`, called in order from the root
+`App.java`, so `java -cp out App` walks through all five articles top to
+bottom, ending with the combined system.
+
+## How OCP and LSP interlink
+
+Open-Closed and Liskov Substitution aren't two unrelated rules that happen
+to sit next to each other in Martin's column numbering -- LSP is *why* OCP
+is safe to rely on.
+
+OCP says: write `ShapeDrawer.drawAllShapes(List<Shape>)` once and never
+touch it again, no matter how many new `Shape` subtypes show up later. That
+promise only holds if every subtype can genuinely stand in for `Shape`
+without the consuming code noticing a difference. LSP is that exact
+guarantee, stated as a rule about substitutability rather than about
+modification. When LSP breaks, OCP doesn't stay safe just because nobody
+edited the "closed" function -- it breaks too, somewhere else, often
+somewhere that looks unrelated to the actual mistake:
+
+- **`lsp.rtti`** is the shallow version. It reuses `ocp.conforming.Triangle`
+  -- proof that the `Shape` hierarchy really is open for extension -- and
+  routes it through an LSP-violating dispatcher instead of the polymorphic
+  one. The `Triangle` silently disappears. Nothing was "modified"; the
+  dispatcher was simply never built to honor an unfamiliar `Shape` the way
+  it honors a familiar one.
+- **`lsp.rectangle.violating`** is the sharp version. `g(Rectangle r)` is
+  textbook OCP-friendly code: written once against the base type, meant to
+  keep working for every derivative forever. It keeps that promise for
+  `Rectangle`. It silently breaks for `Square` -- even though `g()` itself
+  is never touched -- because `Square` redefines `setWidth`/`setHeight` in a
+  way that violates the postcondition `g()` relies on.
+- **`lsp.rectangle.conforming`** restores the guarantee: once `Square` stops
+  pretending to be a `Rectangle`, `ClientFunctions.area(Quadrilateral)` goes
+  back to being reusable, unmodified, for anything that implements the
+  interface.
+- **`lsp.container.*`** replays the same arc through generics: a `Set<T>`
+  client should work for any `Set<T>`; `PersistentSet` violates LSP by
+  silently narrowing which `T` it actually accepts, and the client blows up
+  at runtime for a `T` it was never warned about.
+
+`synthesis.Demo` runs the shapes through both framings back to back, so the
+causal chain is something you can watch happen rather than take on faith.
+
+## How all five principles fit together
+
+The five packages aren't independent exercises -- they're one discipline,
+viewed from five angles. The `solid` capstone makes this executable; here's
+the reasoning behind it.
+
+**SRP is close to a prerequisite for the rest to even be meaningful.** If a
+class has more than one reason to change, "extending" it cleanly (OCP) is
+already compromised -- a change driven by reason A can ripple into behavior
+that reason B depends on, because they were never actually independent.
+Small, cohesive classes are what make a clean extension point possible in
+the first place. `srp.rectangle.conforming` separates geometry from
+rendering *before* either one needs to vary independently -- that's the
+setup OCP later depends on.
+
+**OCP is the goal.** Extend behavior by adding code, not by editing code
+that already works.
+
+**LSP is the constraint that makes relying on OCP safe.** Every extension
+must be truly substitutable for what it extends, or client code that was
+"closed for modification" quietly stops being correct. See the section
+above.
+
+**ISP is SRP's argument, applied one level up.** Martin's SRP essay defines
+a responsibility as "a reason to change" for a *class*. His ISP essay makes
+the identical argument about an *interface*: when two groups of clients use
+non-overlapping parts of one interface, that interface has two reasons to
+change, and forcing both groups to depend on the whole thing couples them
+for no reason. `srp.modem` and `isp.door` are structurally the same fix --
+split by client, recombine only where a concrete implementation is
+genuinely forced to (`ModemImplementation`, `TimedDoor`) -- discovered from
+two different angles a few months apart in Martin's original column series.
+
+**DIP is the mechanism that makes OCP concrete.** "New behavior without
+modifying old code" has to be wired up somehow, and DIP is the wiring rule:
+the high-level policy (`Copy`, `Button`, `AccessChecker`) depends on an
+abstraction (`Reader`/`Writer`, `ButtonClient`, `AccessPolicy`), and every
+concrete detail depends on that *same* abstraction. That's what lets a new
+`DiskWriter` or a new `ResourceOwnerAccessPolicy` show up later with zero
+edits to the policy that uses it -- which is just OCP, achieved through
+dependency direction rather than inheritance.
+
+**`solid.Demo` demonstrates all five in one run:** `AccessChecker` has one
+job and depends only on abstractions (SRP + DIP); swapping its
+`AccessPolicy` requires no changes to `AccessChecker` (OCP); a policy that
+violates the "always returns a boolean" contract breaks `AccessChecker`
+even though `AccessChecker` was never touched (LSP); and `UserRepository`,
+`AccessPolicy`, and `AuditSink` are three separate, thin interfaces instead
+of one fat one, so a caller that only needs the policy never has to know
+the other two exist (ISP).
+
+## Java vs. C++ notes
+
+- **No `friend`:** `ocp.rtti.violating` uses package-private
+  fields/constructors as the nearest equivalent.
+- **No raw structs / free functions:** `ocp.procedural` uses a `ShapeType`
+  enum + a marker interface instead of a shared first struct member;
+  `dip.copy.*` turns C's free functions (`ReadKeyboard`, `getchar`) into
+  small classes with a `read()`/`write()` method.
+- **`dynamic_cast<T*>` -> `instanceof T t`** (Java 16+ pattern matching) --
+  used for a subtype check in `ocp.rtti.*`.
+- **`typeid(s) == typeid(Square)` -> `s.getClass() == Square.class`** --
+  used in `lsp.rtti`. This is an *exact*-type check, stricter than
+  `instanceof`: it also rejects subclasses of `Square`, not just
+  non-Squares.
+- **`dynamic_cast<PersistentObject&>(t)` throwing `bad_cast` -> an explicit
+  Java cast throwing `ClassCastException`** -- used in
+  `lsp.container.violating`.
+- **C++ templates -> Java generics**, with one extra wrinkle: Java's type
+  erasure is *why* `PersistentSet<T>.add()` is allowed to compile an unsafe
+  cast at all.
+- **C++ multiple inheritance -> Java multiple interface implementation.**
+  This is the single biggest simplification in the whole project. Martin's
+  ISP article treats "class form of Adapter via multiple inheritance" as
+  his *preferred* solution but a nontrivial one in C++. In Java,
+  `isp.door.conforming.TimedDoor implements Door, TimerClient` is just...
+  normal. No adapter, no inheritance diamond to reason about, because
+  interfaces carry no state. The delegation form (`DoorTimerAdapter`) is
+  kept in the project for comparison, but Java rarely needs it for this
+  specific problem shape.
+- **`operator+=`/`operator-=` -> `Time.plusSeconds()`/`minusSeconds()`,**
+  kept mutating + chainable (`return this`) to match the original C++
+  semantics.
+
+## Exercises
+
+1. **Break `ocp.ordering.violating` on purpose.** Add a `Triangle`. Count
+   how many files you had to touch. Do the same in `ocp.ordering.conforming`
+   and confirm only `ShapeOrderTable` changes.
+2. **Find a real switch-on-type in your own codebase** and refactor it the
+   way `ocp.procedural` -> `ocp.conforming` did here.
+3. **Argue with Martin.** He calls `Time`'s public fields defensible.
+   Rewrite `ocp.encapsulation.Time` with private fields and a 3-arg
+   `setTime(h, m, s)` and decide if it's actually better, or just more
+   ceremony.
+4. **LSP check on your own extensions.** Add a `Shape` whose `draw()` needs
+   extra setup the others don't and see where the abstraction starts to
+   strain.
+5. **RBAC warm-up, done properly.** You already saw this idea sketched as
+   an exercise -- now it's `solid`. Add a third `AccessPolicy` (e.g.
+   time-of-day restrictions) without touching `AccessChecker`, then add a
+   fourth interface (`RateLimiter`) to the system and decide whether it
+   belongs bundled into `AccessPolicy` or kept separate. Defend the answer
+   in ISP terms.
+6. **Reproduce the "far away" bug.** Call `dip.copy.violating.Copy` from a
+   method two or three layers removed from `Demo.run()`. Notice how much
+   further from the real mistake (the hard-coded dependency) the eventual
+   change request lands.
+7. **Design by Contract, made explicit.** Add pre/postcondition comments to
+   `lsp.rectangle.violating.Rectangle.setWidth`/`setHeight`, then to
+   `Square`'s overrides, and write out exactly which postcondition `Square`
+   weakens.
+8. **Find the SRP/ISP pair yourself.** Before reading the mapping table
+   above, look at `srp.modem.conforming` and `isp.door.conforming` side by
+   side and write down, in your own words, why they're the same fix.
+9. **Extend the capstone's LSP break.** `FlakyAccessPolicy` throws for an
+   unrecognized role. Write a *second* kind of LSP-violating policy --
+   for instance, one that returns `true` non-deterministically -- and add
+   an eval-style test in `Demo` that would have caught it before it shipped.
+10. **Run the synthesis backwards.** Starting from `lsp.container.conforming`
+    (already LSP-compliant), write a *new* client function that would break
+    if `PersistentSet` were changed back to implementing `Set<T>` directly --
+    predict the bug before you reintroduce it.
+
+## Source
+
+Robert C. Martin: "The Open-Closed Principle," "The Liskov Substitution
+Principle," "The Dependency Inversion Principle," and "The Interface
+Segregation Principle" (Engineering Notebook columns, *C++ Report*, 1996);
+and the Single Responsibility Principle chapter of *Agile Software
+Development: Principles, Patterns, and Practices*. Code re-expressed in
+Java for practice; `lsp.rectangle.conforming` and the entire `solid`
+package are original extensions built to demonstrate the principles rather
+than listings transcribed from the articles. The original article text and
+C++ listings are Martin's.
