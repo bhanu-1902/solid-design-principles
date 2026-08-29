@@ -117,6 +117,12 @@ public class App {
         header("36. Prototype: cloning a registered prototype (CONFORMS to OCP/DIP)");
         creational.prototype.conforming.Demo.run();
 
+        header("37. Factory: the same type->class decision duplicated at every call site (VIOLATES DIP)");
+        creational.factory.violating.Demo.run();
+
+        header("38. Factory: one centralized CoinFactory (RESTORES DIP; partial OCP -- compare to #30)");
+        creational.factory.conforming.Demo.run();
+
         System.out.println();
         System.out.println("Done. See README.md for the full listing map and exercises.");
         System.out.println("Run any single section standalone, e.g.:");

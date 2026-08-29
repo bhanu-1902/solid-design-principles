@@ -37,13 +37,14 @@ java -cp out App
 Requires JDK 16+ (uses pattern-matching `instanceof`). Tested on JDK 21.
 
 Every `Demo.java` in the project also has its own `main()`, so you can run
-any single section standalone instead of the whole 36-part walkthrough:
+any single section standalone instead of the whole 38-part walkthrough:
 
 ```bash
 java -cp out solid.Demo
 java -cp out dip.buttonlamp.conforming.Demo
 java -cp out isp.door.violating.Demo
 java -cp out creational.abstractfactory.conforming.Demo
+java -cp out creational.factory.conforming.Demo
 ```
 
 ## Map back to the articles
@@ -175,6 +176,7 @@ point at exactly which SOLID principle the pattern is restoring and why.
 | Package | Pattern | SOLID tie-in | Point being made |
 |---|---|---|---|
 | `creational.singleton.violating` / `.conforming` | Singleton | DIP | `.violating`'s `getInstance()` is unsynchronized (racy under concurrent first use) and every caller names the concrete class directly. `.conforming` uses the initialization-on-demand holder idiom (thread-safe, no locking) and returns a `Configuration` interface, so callers -- and tests -- depend on the abstraction, not the Singleton class. |
+| `creational.factory.violating` / `.conforming` | Factory | DIP (partial OCP) | `.violating`'s `Demo` has two unrelated methods that each re-implement the same "type string -> concrete `Coin`" decision, so a new coin means finding and fixing every duplicate. `.conforming`'s `CoinFactory` + `CoinType` enum centralizes that decision in one place; callers depend only on `Coin`/`CoinFactory`/`CoinType`, never on `GoldCoin`/`SilverCoin`/`CopperCoin` (DIP) -- but a new coin is still one edit to `CoinType`, not zero. |
 | `creational.factorymethod.violating` / `.conforming` | Factory Method | OCP, DIP | `.violating`'s `NotificationService.createNotification()` is an if/else that must be edited for every new channel. `.conforming` moves creation into an overridable `NotificationCreator.createNotification()`; a new channel (`PushNotificationCreator`) is a new file, and the template method `notify()` never changes. |
 | `creational.builder.violating` / `.conforming` | Builder | SRP, OCP | `.violating`'s `Computer` telescopes constructor overloads with positional booleans that are easy to transpose. `.conforming` separates assembly (`Computer.Builder`, plus a `StandardBuilds` "Director") from representation (`Computer` itself); every option is named at the call site, and a new optional field is one new method that cannot break an existing caller. |
 | `creational.abstractfactory.violating` / `.conforming` | Abstract Factory | OCP, DIP | `.violating`'s `Application` re-checks a theme string and lists every concrete widget class in two separate methods. `.conforming`'s `GUIFactory` produces a matched `Button` + `Checkbox` family per theme; `Application` depends only on `GUIFactory`/`Button`/`Checkbox`, so a new theme is a new factory with zero edits to `Application`. |
@@ -190,6 +192,20 @@ A few connections worth calling out explicitly:
   `dip.buttonlamp` do: keep the single instance, but have every consumer
   depend on an interface (`Configuration`) rather than the class that
   implements it.
+- **Factory and Factory Method solve the same problem to different
+  degrees, and it's worth being precise about the difference.** Factory
+  (`creational.factory.conforming`) is *one class* that decides which
+  concrete type to build, based on a parameter -- here, a `CoinType`
+  enum mapping to constructors. That's a real DIP win over `.violating`
+  (callers stop depending on `GoldCoin`/`SilverCoin`/`CopperCoin`) and a
+  real DRY win (the decision exists exactly once instead of once per call
+  site), but it is *not* a full OCP win: a new `PlatinumCoin` still means
+  editing `CoinType`. Factory Method
+  (`creational.factorymethod.conforming`) removes that last edit by
+  moving the decision into a class hierarchy instead of a single method --
+  a new channel is a new `NotificationCreator` subclass, and nothing
+  that already compiles gets touched. Factory is "GoF-adjacent" (not one
+  of the original 23 patterns); Factory Method is.
 - **Factory Method is OCP's Open half, made about object creation
   specifically.** `ocp.conforming.Shape` already showed "closed for
   modification" for *behavior*; `NotificationCreator` shows the identical
@@ -219,6 +235,7 @@ are not transcriptions of any particular book's listings. For the
 canonical GoF description and further worked examples of each pattern,
 see the [Java Design Patterns](https://java-design-patterns.com/patterns/#read-online)
 reference site: [Singleton](https://java-design-patterns.com/patterns/singleton/),
+[Factory](https://java-design-patterns.com/patterns/factory/),
 [Factory Method](https://java-design-patterns.com/patterns/factory-method/),
 [Builder](https://java-design-patterns.com/patterns/builder/),
 [Abstract Factory](https://java-design-patterns.com/patterns/abstract-factory/),
