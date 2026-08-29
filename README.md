@@ -20,6 +20,13 @@ principles from two different sources and a decade apart under one mnemonic.
 That's part of why SRP feels a little different in flavor from the other
 four -- it's genuinely from a different lineage.
 
+The repo has since grown a second track: the Gang of Four's *Design
+Patterns*, implemented the same violating/conforming way and explicitly
+tied back to whichever SOLID principle each pattern serves. The
+**Creational** patterns are done -- see
+[Creational Design Patterns](#creational-design-patterns-gang-of-four)
+below. Structural and Behavioral patterns are planned next.
+
 ## How to build and run
 
 ```bash
@@ -30,12 +37,13 @@ java -cp out App
 Requires JDK 16+ (uses pattern-matching `instanceof`). Tested on JDK 21.
 
 Every `Demo.java` in the project also has its own `main()`, so you can run
-any single section standalone instead of the whole 26-part walkthrough:
+any single section standalone instead of the whole 36-part walkthrough:
 
 ```bash
 java -cp out solid.Demo
 java -cp out dip.buttonlamp.conforming.Demo
 java -cp out isp.door.violating.Demo
+java -cp out creational.abstractfactory.conforming.Demo
 ```
 
 ## Map back to the articles
@@ -153,6 +161,68 @@ even though `AccessChecker` was never touched (LSP); and `UserRepository`,
 `AccessPolicy`, and `AuditSink` are three separate, thin interfaces instead
 of one fat one, so a caller that only needs the policy never has to know
 the other two exist (ISP).
+
+## Creational Design Patterns (Gang of Four)
+
+The five *Design Patterns* (Gamma, Helm, Johnson, Vlissides -- "GoF")
+Creational patterns, added as a second track alongside the SOLID material
+above and cross-referenced against it. Each pattern gets the same
+`violating` / `conforming` treatment as the SOLID packages: `violating`
+is working code that solves the immediate problem but breaks down under
+change, `conforming` is the GoF pattern, and the comments in each file
+point at exactly which SOLID principle the pattern is restoring and why.
+
+| Package | Pattern | SOLID tie-in | Point being made |
+|---|---|---|---|
+| `creational.singleton.violating` / `.conforming` | Singleton | DIP | `.violating`'s `getInstance()` is unsynchronized (racy under concurrent first use) and every caller names the concrete class directly. `.conforming` uses the initialization-on-demand holder idiom (thread-safe, no locking) and returns a `Configuration` interface, so callers -- and tests -- depend on the abstraction, not the Singleton class. |
+| `creational.factorymethod.violating` / `.conforming` | Factory Method | OCP, DIP | `.violating`'s `NotificationService.createNotification()` is an if/else that must be edited for every new channel. `.conforming` moves creation into an overridable `NotificationCreator.createNotification()`; a new channel (`PushNotificationCreator`) is a new file, and the template method `notify()` never changes. |
+| `creational.builder.violating` / `.conforming` | Builder | SRP, OCP | `.violating`'s `Computer` telescopes constructor overloads with positional booleans that are easy to transpose. `.conforming` separates assembly (`Computer.Builder`, plus a `StandardBuilds` "Director") from representation (`Computer` itself); every option is named at the call site, and a new optional field is one new method that cannot break an existing caller. |
+| `creational.abstractfactory.violating` / `.conforming` | Abstract Factory | OCP, DIP | `.violating`'s `Application` re-checks a theme string and lists every concrete widget class in two separate methods. `.conforming`'s `GUIFactory` produces a matched `Button` + `Checkbox` family per theme; `Application` depends only on `GUIFactory`/`Button`/`Checkbox`, so a new theme is a new factory with zero edits to `Application`. |
+| `creational.prototype.violating` / `.conforming` | Prototype | OCP, DIP | `.violating` re-runs the same "expensive setup" at every `new OrcWarrior(...)` call site. `.conforming` registers one pre-built prototype per kind in a `CharacterFactory` and spawns via `copy()` (a deep copy, so clones don't share mutable state) -- the expensive work happens once, and a new kind is one `registerPrototype()` call. |
+
+A few connections worth calling out explicitly:
+
+- **Singleton and DIP pull in opposite directions by default.** The
+  pattern's whole point is "exactly one instance, globally reachable" --
+  but "globally reachable" usually means "reachable by naming the
+  concrete class," which is precisely what DIP says not to do. The
+  `.conforming` package resolves the tension the same way `dip.copy` and
+  `dip.buttonlamp` do: keep the single instance, but have every consumer
+  depend on an interface (`Configuration`) rather than the class that
+  implements it.
+- **Factory Method is OCP's Open half, made about object creation
+  specifically.** `ocp.conforming.Shape` already showed "closed for
+  modification" for *behavior*; `NotificationCreator` shows the identical
+  shape for *construction* -- a new product arrives as a new subclass,
+  never as an edit to code that already works.
+- **Builder is SRP applied to construction itself.** A class that both
+  represents a fully-built object *and* handles every combination of
+  how it might be partially built has two reasons to change: its data
+  model, and its assembly rules. Splitting those (`Computer` /
+  `Computer.Builder`) is the same move `srp.rectangle.conforming` makes
+  splitting geometry from rendering.
+- **Abstract Factory is DIP at the level of a whole product family.**
+  Plain Factory Method abstracts "how do I create one thing"; Abstract
+  Factory abstracts "how do I create a consistent *set* of things,"
+  which is what keeps `LightThemeFactory` from ever being able to hand
+  back a mismatched `DarkCheckbox`.
+- **Prototype is a DIP-flavored alternative to Factory Method /
+  Abstract Factory**, useful specifically when construction is expensive
+  or when the exact concrete class to instantiate isn't known until
+  runtime. Clients still depend on an abstraction (`GameCharacter`), but
+  the "factory" (`CharacterFactory`) hands out copies of live objects
+  instead of running a constructor.
+
+**Source:** implementations here are original, written for this repo to
+demonstrate each pattern's mechanics and its link back to SOLID -- they
+are not transcriptions of any particular book's listings. For the
+canonical GoF description and further worked examples of each pattern,
+see the [Java Design Patterns](https://java-design-patterns.com/patterns/#read-online)
+reference site: [Singleton](https://java-design-patterns.com/patterns/singleton/),
+[Factory Method](https://java-design-patterns.com/patterns/factory-method/),
+[Builder](https://java-design-patterns.com/patterns/builder/),
+[Abstract Factory](https://java-design-patterns.com/patterns/abstract-factory/),
+and [Prototype](https://java-design-patterns.com/patterns/prototype/).
 
 ## Java vs. C++ notes
 

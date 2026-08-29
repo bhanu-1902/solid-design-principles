@@ -86,11 +86,43 @@ public class App {
         header("26. SOLID capstone -- a small RBAC system using all five principles together");
         solid.Demo.run();
 
+        // =================== CREATIONAL PATTERNS (GoF) ===================
+        header("27. Singleton: unsynchronized, concrete-class global state (VIOLATES DIP)");
+        creational.singleton.violating.Demo.run();
+
+        header("28. Singleton: thread-safe holder behind a Configuration interface (RESTORES DIP)");
+        creational.singleton.conforming.Demo.run();
+
+        header("29. Factory Method: switch-style creation in one method (VIOLATES OCP)");
+        creational.factorymethod.violating.Demo.run();
+
+        header("30. Factory Method: creation deferred to subclasses (CONFORMS to OCP/DIP)");
+        creational.factorymethod.conforming.Demo.run();
+
+        header("31. Builder: telescoping constructors (VIOLATES SRP/OCP)");
+        creational.builder.violating.Demo.run();
+
+        header("32. Builder: fluent Builder separates assembly from representation (CONFORMS to SRP/OCP)");
+        creational.builder.conforming.Demo.run();
+
+        header("33. Abstract Factory: theme re-checked in every render method (VIOLATES OCP/DIP)");
+        creational.abstractfactory.violating.Demo.run();
+
+        header("34. Abstract Factory: GUIFactory produces a matched widget family (CONFORMS to OCP/DIP)");
+        creational.abstractfactory.conforming.Demo.run();
+
+        header("35. Prototype: re-running expensive setup at every spawn site (VIOLATES OCP/DIP)");
+        creational.prototype.violating.Demo.run();
+
+        header("36. Prototype: cloning a registered prototype (CONFORMS to OCP/DIP)");
+        creational.prototype.conforming.Demo.run();
+
         System.out.println();
         System.out.println("Done. See README.md for the full listing map and exercises.");
         System.out.println("Run any single section standalone, e.g.:");
         System.out.println("  java -cp out solid.Demo");
         System.out.println("  java -cp out dip.buttonlamp.conforming.Demo");
+        System.out.println("  java -cp out creational.abstractfactory.conforming.Demo");
     }
 
     private static void header(String title) {
