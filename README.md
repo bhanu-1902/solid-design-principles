@@ -41,7 +41,7 @@ java -cp out App
 Requires JDK 16+ (uses pattern-matching `instanceof`). Tested on JDK 21.
 
 Every `Demo.java` in the project also has its own `main()`, so you can run
-any single section standalone instead of the whole 52-part walkthrough:
+any single section standalone instead of the whole 53-part walkthrough:
 
 ```bash
 java -cp out solid.Demo
@@ -50,6 +50,7 @@ java -cp out isp.door.violating.Demo
 java -cp out creational.abstractfactory.conforming.Demo
 java -cp out creational.factory.conforming.Demo
 java -cp out structural.bridge.conforming.Demo
+java -cp out creational.prototype.cloneable.Demo
 ```
 
 ## Map back to the articles
@@ -233,6 +234,19 @@ A few connections worth calling out explicitly:
   runtime. Clients still depend on an abstraction (`GameCharacter`), but
   the "factory" (`CharacterFactory`) hands out copies of live objects
   instead of running a constructor.
+- **There's a third Prototype variant worth comparing:
+  `creational.prototype.cloneable`.** `.conforming` clones via a private
+  copy constructor; `cloneable` clones the textbook Java way --
+  `implements Cloneable`, override `clone()`, call `super.clone()`. Both
+  implement the identical pattern, but `cloneable` pays for it: `name`
+  and `equipment` can no longer be `final` (the post-clone deep-copy
+  fixup has to reassign them, which a `final` field forbids), every
+  `clone()` override repeats the same `CloneNotSupportedException`
+  boilerplate, and forgetting the fixup line fails *silently* --
+  two "independent" clones quietly share one mutable list -- instead of
+  failing to compile, the way an incomplete copy constructor would. This
+  is exactly why Joshua Bloch's *Effective Java* recommends a copy
+  constructor over `Cloneable` in general.
 
 **Source:** implementations here are original, written for this repo to
 demonstrate each pattern's mechanics and its link back to SOLID -- they

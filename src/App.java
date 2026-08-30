@@ -166,6 +166,9 @@ public class App {
         header("52. Flyweight: TreeFactory shares one TreeType per species (CONFORMS to DIP)");
         structural.flyweight.conforming.Demo.run();
 
+        header("53. Prototype: Java's Cloneable/clone() mechanism (same pattern as #36, more ceremony)");
+        creational.prototype.cloneable.Demo.run();
+
         System.out.println();
         System.out.println("Done. See README.md for the full listing map and exercises.");
         System.out.println("Run any single section standalone, e.g.:");
