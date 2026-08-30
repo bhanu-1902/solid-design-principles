@@ -123,12 +123,56 @@ public class App {
         header("38. Factory: one centralized CoinFactory (RESTORES DIP; partial OCP -- compare to #30)");
         creational.factory.conforming.Demo.run();
 
+        // =================== STRUCTURAL PATTERNS (GoF) ====================
+        header("39. Adapter: Captain special-cases FishingBoat by name (VIOLATES OCP/DIP)");
+        structural.adapter.violating.Demo.run();
+
+        header("40. Adapter: FishingBoatAdapter re-exposes it as a RowingBoat (CONFORMS to OCP/DIP)");
+        structural.adapter.conforming.Demo.run();
+
+        header("41. Decorator: a new subclass per topping combination (VIOLATES OCP)");
+        structural.decorator.violating.Demo.run();
+
+        header("42. Decorator: toppings stack as wrappers at runtime (CONFORMS to OCP)");
+        structural.decorator.conforming.Demo.run();
+
+        header("43. Facade: boot sequence duplicated across two client methods (VIOLATES DIP/DRY)");
+        structural.facade.violating.Demo.run();
+
+        header("44. Facade: ComputerFacade owns the boot sequence in one place (CONFORMS to DIP)");
+        structural.facade.conforming.Demo.run();
+
+        header("45. Composite: client recurses by hand over two separate child lists (VIOLATES OCP)");
+        structural.composite.violating.Demo.run();
+
+        header("46. Composite: File and Directory answer getSizeKb() uniformly (CONFORMS to OCP/DIP)");
+        structural.composite.conforming.Demo.run();
+
+        header("47. Proxy: every image loads eagerly, used or not (VIOLATES DIP)");
+        structural.proxy.violating.Demo.run();
+
+        header("48. Proxy: ProxyImage defers loading until first display() (CONFORMS to DIP)");
+        structural.proxy.conforming.Demo.run();
+
+        header("49. Bridge: one class per (shape, color) pair (VIOLATES OCP)");
+        structural.bridge.violating.Demo.run();
+
+        header("50. Bridge: Shape holds a Color instead of extending one (CONFORMS to OCP/DIP)");
+        structural.bridge.conforming.Demo.run();
+
+        header("51. Flyweight: every tree duplicates its own texture data (wasteful, poor OCP for growth)");
+        structural.flyweight.violating.Demo.run();
+
+        header("52. Flyweight: TreeFactory shares one TreeType per species (CONFORMS to DIP)");
+        structural.flyweight.conforming.Demo.run();
+
         System.out.println();
         System.out.println("Done. See README.md for the full listing map and exercises.");
         System.out.println("Run any single section standalone, e.g.:");
         System.out.println("  java -cp out solid.Demo");
         System.out.println("  java -cp out dip.buttonlamp.conforming.Demo");
         System.out.println("  java -cp out creational.abstractfactory.conforming.Demo");
+        System.out.println("  java -cp out structural.bridge.conforming.Demo");
     }
 
     private static void header(String title) {

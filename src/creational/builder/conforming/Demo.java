@@ -5,6 +5,7 @@ public class Demo {
         Computer office = new Computer.Builder("Intel i5", 16)
                 .storageGb(512)
                 .withWifi()
+                .storageGb(256)
                 .build();
         System.out.println(office);
 

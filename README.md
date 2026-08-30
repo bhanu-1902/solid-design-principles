@@ -22,10 +22,14 @@ four -- it's genuinely from a different lineage.
 
 The repo has since grown a second track: the Gang of Four's *Design
 Patterns*, implemented the same violating/conforming way and explicitly
-tied back to whichever SOLID principle each pattern serves. The
-**Creational** patterns are done -- see
-[Creational Design Patterns](#creational-design-patterns-gang-of-four)
-below. Structural and Behavioral patterns are planned next.
+tied back to whichever SOLID principle each pattern serves. **Creational**
+and **Structural** patterns are both done -- see
+[Creational Design Patterns](#creational-design-patterns-gang-of-four) and
+[Structural Design Patterns](#structural-design-patterns-gang-of-four)
+below. Behavioral patterns are planned next. There's also a standalone
+[UML-RELATIONSHIPS.md](UML-RELATIONSHIPS.md) mapping Association,
+Aggregation, Composition, Generalization, Realization, and Dependency to
+specific, line-referenced code across both tracks.
 
 ## How to build and run
 
@@ -37,7 +41,7 @@ java -cp out App
 Requires JDK 16+ (uses pattern-matching `instanceof`). Tested on JDK 21.
 
 Every `Demo.java` in the project also has its own `main()`, so you can run
-any single section standalone instead of the whole 38-part walkthrough:
+any single section standalone instead of the whole 52-part walkthrough:
 
 ```bash
 java -cp out solid.Demo
@@ -45,6 +49,7 @@ java -cp out dip.buttonlamp.conforming.Demo
 java -cp out isp.door.violating.Demo
 java -cp out creational.abstractfactory.conforming.Demo
 java -cp out creational.factory.conforming.Demo
+java -cp out structural.bridge.conforming.Demo
 ```
 
 ## Map back to the articles
@@ -240,6 +245,75 @@ reference site: [Singleton](https://java-design-patterns.com/patterns/singleton/
 [Builder](https://java-design-patterns.com/patterns/builder/),
 [Abstract Factory](https://java-design-patterns.com/patterns/abstract-factory/),
 and [Prototype](https://java-design-patterns.com/patterns/prototype/).
+
+## Structural Design Patterns (Gang of Four)
+
+The second GoF category, same treatment as Creational: `violating` /
+`conforming` pairs, each comment pointing at the SOLID principle the
+pattern restores. Structural patterns are specifically about how classes
+and objects are *composed* into larger structures, which makes them the
+natural place to see UML relationship types in concrete code -- see
+[UML-RELATIONSHIPS.md](UML-RELATIONSHIPS.md) for exactly how each pattern
+below decomposes into Aggregation/Composition/Generalization/Realization.
+
+| Package | Pattern | SOLID tie-in | Point being made |
+|---|---|---|---|
+| `structural.adapter.violating` / `.conforming` | Adapter | OCP, DIP | `.violating`'s `Captain` special-cases `FishingBoat` with an `instanceof` branch because it has an incompatible interface. `.conforming`'s `FishingBoatAdapter implements RowingBoat` and translates `row()` into `sail()`; `Captain` depends on `RowingBoat` only, and a new incompatible boat type is a new adapter, not a new branch. |
+| `structural.decorator.violating` / `.conforming` | Decorator | OCP | `.violating` hardcodes each topping combination as its own subclass (`CoffeeWithMilk`, `CoffeeWithMilkAndSugar`, ...) -- combinatorial growth. `.conforming`'s `CoffeeDecorator` wraps a `Coffee` instead of extending one; toppings stack at runtime (`new SugarDecorator(new MilkDecorator(...))`), and a new topping is one new decorator class, not one new class per combination it can appear in. |
+| `structural.facade.violating` / `.conforming` | Facade | DIP (and DRY) | `.violating`'s `Demo` has two methods that each duplicate the same `CPU`/`Memory`/`HardDrive` boot sequence, depending on all three concretely. `.conforming`'s `ComputerFacade` owns that orchestration in one place; client code depends on the facade only, and `startInSafeMode()` reuses `start()` instead of re-deriving the sequence. |
+| `structural.composite.violating` / `.conforming` | Composite | OCP, DIP | `.violating`'s `Directory` splits children into two separate lists, forcing `Demo.totalSizeKb()` to recurse by hand and know both types. `.conforming`'s `FileSystemComponent` interface lets `File` and `Directory` answer `getSizeKb()` identically; `Directory.getSizeKb()` recurses internally, so a client just calls `root.getSizeKb()` and the tree structure is invisible to it. |
+| `structural.proxy.violating` / `.conforming` | Proxy | DIP | `.violating` constructs every `RealImage` up front, paying the "load from disk" cost whether or not it's ever displayed. `.conforming`'s `ProxyImage implements Image` and builds the real one lazily on first `display()`; callers depend on `Image` and can't tell a proxy from the real thing. |
+| `structural.bridge.violating` / `.conforming` | Bridge | OCP, DIP | `.violating` welds shape and color together (`RedCircle`, `BlueSquare`, ...) -- N shapes x M colors means N*M classes. `.conforming`'s `Shape` holds a `Color` instead of extending one; a new color is one class, immediately usable by every existing shape (N+M classes instead of N*M). |
+| `structural.flyweight.violating` / `.conforming` | Flyweight | DIP (and memory efficiency) | `.violating`'s `Tree` copies its own name/color/texture into every instance, even when many trees share an identical species. `.conforming`'s `TreeFactory` caches one shared `TreeType` per species; `Tree` stores only its own position and a reference to the shared type -- the same registry shape as `creational.prototype.conforming.CharacterFactory`, but sharing instead of cloning. |
+
+A few connections worth calling out explicitly:
+
+- **Adapter and Bridge both use a wrapped/held interface to restore DIP,
+  but for different reasons.** Adapter exists because two interfaces
+  already exist and don't match -- it's a retrofit. Bridge exists because
+  you're designing from scratch and want to *prevent* a combinatorial
+  explosion before it happens. If `structural.bridge.violating` already
+  shipped and you needed to plug in a third-party `Color` implementation
+  with an incompatible interface, you'd reach for Adapter *inside* the
+  Bridge design -- the two patterns compose.
+- **Decorator vs. Bridge vs. Composite is a good "when do I hold another
+  object instead of extending it" comparison**, since all three replace
+  inheritance with composition for a different reason: Decorator adds
+  *behavior* incrementally (any number of wraps, same interface in and
+  out); Bridge separates *two independently-varying dimensions*
+  (abstraction vs. implementor); Composite represents a *whole-part tree*
+  where the container and the leaf must answer identically.
+- **Facade is the one Structural pattern that isn't primarily about
+  swapping implementations.** `ComputerFacade` doesn't make `CPU` easier
+  to replace -- it makes the *boot sequence* have exactly one owner. It's
+  DIP applied to a call site's knowledge of orchestration order, not to
+  its knowledge of a type.
+- **Proxy and the Singleton's holder idiom solve adjacent problems with
+  the same tool: lazy, controlled construction behind an unchanged
+  interface.** `creational.singleton.conforming.ConfigurationManager`
+  defers work until first `getInstance()` call and then reuses one
+  instance forever; `structural.proxy.conforming.ProxyImage` defers work
+  until first `display()` call, per-instance. Same idea, different scope.
+- **Flyweight is Prototype's mirror image.** Both center on a factory
+  that caches something expensive to avoid rebuilding it
+  (`creational.prototype.conforming.CharacterFactory` and
+  `structural.flyweight.conforming.TreeFactory` are nearly the same
+  shape). Prototype hands back an independent *copy* so callers can
+  safely mutate their own; Flyweight hands back the *same shared
+  instance* so many callers can reference it without duplicating memory --
+  which only works because the shared part (`TreeType`) is treated as
+  immutable.
+
+**Source:** implementations here are original, written for this repo. For
+the canonical GoF description and further worked examples, see
+[Adapter](https://java-design-patterns.com/patterns/adapter/),
+[Decorator](https://java-design-patterns.com/patterns/decorator/),
+[Facade](https://java-design-patterns.com/patterns/facade/),
+[Composite](https://java-design-patterns.com/patterns/composite/),
+[Proxy](https://java-design-patterns.com/patterns/proxy/),
+[Bridge](https://java-design-patterns.com/patterns/bridge/), and
+[Flyweight](https://java-design-patterns.com/patterns/flyweight/) on
+[Java Design Patterns](https://java-design-patterns.com/patterns/#read-online).
 
 ## Java vs. C++ notes
 
